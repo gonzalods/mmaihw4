@@ -17,7 +17,8 @@ class PlayerAI(BaseAI):
         return self.alfaBeta(grid)
         
     def alfaBeta(self, grid):
-        #print(grid.map)
+        with open("test.txt",'w') as f:
+            f.write("{}\n".format(grid.map))
         #iniAvCells = len(grid.getAvailableCells())
         #maxTile = grid.getMaxTile()
         #exponent = int(log(maxTile,2))
@@ -30,9 +31,14 @@ class PlayerAI(BaseAI):
         maxValue = float("-inf")
         betterMove = moves[0]
         for move in moves:
-            print("Max action {} -- depth:{}".format(move, 1))
-            val = self.minValue(self.maxResult(grid, move),alfa, float("inf"), 2, len(moves))
-            #print("valor {} para movimiento {}".format(val,move))
+            maxResult = self.maxResult(grid, move)
+            with open("test.txt",'a') as f:
+                f.write("Max action {} -- depth:{} -- result {}\n".format(move, 1, maxResult.map))
+                f.flush()
+            val = self.minValue(maxResult,alfa, float("inf"), 2, len(moves))
+            with open("test.txt",'a') as f:
+                f.write("valor {} para movimiento {}\n".format(val,move))
+                f.flush()
             alfa = max(alfa,val)
             if val > maxValue:
                 maxValue = val
@@ -41,17 +47,23 @@ class PlayerAI(BaseAI):
     
     def maxValue(self, grid, alfa, beta, depth, bf):
         #self.depth = self.depth + 1
-        #if self.terminalState(grid, depth, bf):
-        #    return self.heuristic(grid)
+        if self.terminalState(grid, depth, bf):
+            return self.heuristic(grid, depth)
         
         value = float("-inf")
         actions = self.maxActions(grid)
         bfthis = len(actions)
         for action in actions:
-            print("Max action {} -- depth:{}".format(action, depth))
-            value = max(value, self.minValue(self.maxResult(grid,action),alfa,beta, depth + 1, max(bf, bfthis)))
-            if value >= beta: 
-                print("prune Max -- depth:{} -- (alfa){} >= {}(beta)".format(depth, alfa, value))
+            maxResult = self.maxResult(grid,action)
+            tabs = "\t"*(depth -1)
+            with open("test.txt",'a') as f:
+                f.write("{}Max action {} -- depth:{} -- result {}\n".format(tabs,action, depth, maxResult.map))
+                f.flush()
+            value = max(value, self.minValue(maxResult, alfa, beta, depth + 1, max(bf, bfthis)))
+            if value >= beta:
+                with open("test.txt",'a') as f:
+                    f.write("{}prune Max -- depth:{} -- (alfa){} >= {}(beta)\n".format(tabs, depth, alfa, value))
+                    f.flush()
                 return value
             alfa = max(alfa,value)
         
@@ -60,17 +72,23 @@ class PlayerAI(BaseAI):
     
     def minValue(self, grid, alfa, beta, depth, bf):
         #self.depth = self.depth + 1
-        if self.terminalState(grid, depth, bf):
-            return self.heuristic(grid)
+        #if self.terminalState(grid, depth, bf):
+        #    return self.heuristic(grid, depth)
         
         value = float("inf")
         actions = self.minActions(grid)
         bfthis = len(actions)
         for action in self.minActions(grid):
-            print("Min action {} -- depth:{}".format(action, depth))
-            value = min(value, self.maxValue(self.minResult(grid,action),alfa,beta, depth + 1, max(bf, bfthis)))
+            minResult = self.minResult(grid,action)
+            tabs = "\t"*(depth -1)
+            with open("test.txt",'a') as f:
+                f.write("{}Min action {} -- depth:{} -- result {}\n".format(tabs, action, depth, minResult.map))
+                f.flush()
+            value = min(value, self.maxValue(minResult, alfa, beta, depth + 1, max(bf, bfthis)))
             if value <= alfa: 
-                print("prune Min -- depth:{} -- (beta){} <= {}(alfa)".format(depth, value, alfa))
+                with open("test.txt",'a') as f:
+                    f.write("{}prune Min -- depth:{} -- (beta){} <= {}(alfa)\n".format(tabs, depth, value, alfa))
+                    f.flush()
                 return value
             beta = min(beta, value)
         
@@ -113,21 +131,26 @@ class PlayerAI(BaseAI):
     
     def terminalState(self, grid, depth, bf):
         numAvblCells = len(grid.getAvailableCells())
-        #if numAvblCells > 4 and depth >= 4:
-        complexity = bf**depth
-        if complexity >= 50625:
-            print("depth {} -- bf {} -- complexity {}".format(depth, bf, complexity))
+        complexity = bf**(depth - 2)
+        tabs = "\t" * (depth - 2)
+        if numAvblCells > 4 and depth >= 4:
+        #if complexity >= 50625:
+            with open("test.txt",'a') as f:
+                f.write("{}depth {} -- bf {} -- complexity {}\n".format(tabs, depth-1, bf, complexity))
             return True
-        #if numAvblCells <= 4 and depth >= 6:
+        if numAvblCells <= 4 and depth >= 6:
             #self.depth = self.depth - 1
-        #    return True
+            with open("test.txt",'a') as f:
+                f.write("{}depth {} -- bf {} -- complexity {}\n".format(tabs, depth-1, bf, complexity))
+                f.flush()
+            return True
         #if grid.getMaxTile() == self.LIMIT:
-        #if len(grid.getAvailableMoves()) == 0:
+        if len(grid.getAvailableMoves()) == 0:
         #if len(grid.getAvailableCells()) == 0 or len(grid.getAvailableMoves()) == 0:
             #print("Se llenan rama {} con profundidad {}".format(grid.map, self.depth))
             #self.depth = self.depth - 1
             #sys.exit()
-        #    return True        
+            return True        
         #if self.heuristic(grid):
             #print("Se llega al destino {} con profundidad {}".format(grid.map, self.depth))
             #self.depth = self.depth - 1
@@ -139,19 +162,26 @@ class PlayerAI(BaseAI):
     def utility(self, grid):
         return grid.getMaxTile()
         
-    def heuristic(self, grid):
+    def heuristic(self, grid, depth):
         avCells = len(grid.getAvailableCells())
-        #if(avCells == 0):
-        #    return grid.getMaxTile()
+        moves = len(grid.getAvailableMoves())
+        #if avCells == 0 or moves == 0:
+        if moves == 0:
+            return grid.getMaxTile()
         #else:
         #    avCells = math.log(avCells)
         #print("celdas: {} -- grid: {}".format(avCells, grid.map))
-        #maxValue = math.log(grid.getMaxTile(),2)
-        logAvg = self.average(grid)
+        maxValue = math.log(grid.getMaxTile(),2)
+        #logAvg = self.average(grid)
         #scoreEdges = self.scoreEdges(grid)
         monotonocity = self.monotonic(grid)
         adjacents = self.adjacents(grid)
-        return 3.0*avCells + +1.0*monotonocity + 2.0*logAvg + 0.7*adjacents #11.0*logAvg + 700.0*adjacents + 47.0*monotonocity 
+        hu = 3.0*avCells  +1.0*monotonocity + 2.0*maxValue + 0.7*adjacents #11.0*logAvg + 700.0*adjacents + 47.0*monotonocity 
+        tabs = "\t" * (depth - 2)
+        with open("test.txt",'a') as f:
+            f.write("{}heuristica {} -- ({}) -- ({}) -- ({}) -- ({})\n".format(tabs, hu, avCells, monotonocity, maxValue, adjacents))
+            f.flush()
+        return hu
 
     def average(self,grid):
         avg = 0
