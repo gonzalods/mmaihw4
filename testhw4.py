@@ -1,5 +1,5 @@
 from Grid       import Grid
-from PlayerAI   import PlayerAI
+from PlayerAITest   import PlayerAI
 from random     import randint
 import time
 
@@ -26,7 +26,6 @@ def updateAlarm(currTime, prevTime):
         prevTime = time.clock()
         
 def main():
-    prevTime = time.clock()
     playerAI  = PlayerAI()
     grid = Grid()
     cells = grid.getAvailableCells()
@@ -35,7 +34,9 @@ def main():
         grid.setCellValue(cell, getNewTileValue())
     #grid.map = [[4, 8, 16, 2], [16, 32, 64, 32], [4, 128, 512, 256], [2, 2, 4, 64]] 
     #grid.map = [[0, 0, 0, 0], [0, 0, 0, 2], [0, 0, 4, 0], [0, 0, 0, 0]]
-    grid.map = [[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    #grid.map = [[2, 0, 0, 0], [2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    grid.map = [[16, 256, 8, 4], [ 4, 64, 128, 16], [0, 8, 4, 4], [0, 2, 0, 2]]
+    prevTime = time.clock()
     print playerAI.getMove(grid)
     updateAlarm(time.clock(), prevTime)
     

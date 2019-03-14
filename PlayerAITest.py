@@ -6,18 +6,45 @@ import sys
 
 class PlayerAI(BaseAI):
 
+    def __init__(self):
+        self.LIMIT = 4
+        self.debug = True
+        #self.depth = 0
+        #self.iniAvCells = 0
+    
     def getMove(self, grid):
+        #moves = grid.getAvailableMoves()
+        #return moves[randint(0, len(moves) - 1)] if moves else None
         return self.alfaBeta(grid)
         
     def alfaBeta(self, grid):
+        if self.debug:
+            with open("test.txt",'w') as f:
+                f.write("{}\n".format(grid.map))
+        #iniAvCells = len(grid.getAvailableCells())
+        #maxTile = grid.getMaxTile()
+        #exponent = int(log(maxTile,2))
+        #if iniAvCells <= 6:
+        #    self.LIMIT = 6
+        #print(self.LIMIT)
         moves = grid.getAvailableMoves()
-
+        movesrem = 0
+        #print("Initial Actions {}".format(moves))
         alfa = float("-inf")
         maxValue = float("-inf")
         betterMove = moves[0]
         for move in moves:
             maxResult = self.maxResult(grid, move)
-            val = self.minValue(maxResult,alfa, float("inf"), 1, len(moves))
+            if self.debug:
+                movesrem = movesrem + 1
+                with open("test.txt",'a') as f:
+                    f.write("Max action {} -- depth:{} -- bf:{}-{} -- result {}\n".format(move, 1, movesrem, len(moves), maxResult.map))
+                    f.flush()
+            val = self.minValue(maxResult,alfa, float("inf"), 2, len(moves))
+            if self.debug:
+                with open("test.txt",'a') as f:
+                    f.write("valor {} para movimiento {}\n".format(val,move))
+                    f.flush()
             alfa = max(alfa,val)
             if val > maxValue:
                 maxValue = val
@@ -25,35 +52,61 @@ class PlayerAI(BaseAI):
         return betterMove   
     
     def maxValue(self, grid, alfa, beta, depth, bf):
-
+        #self.depth = self.depth + 1
         #if self.terminalState(grid, depth, bf):
         #    return self.heuristic(grid, depth)
         
         value = float("-inf")
         actions = self.maxActions(grid)
         bfthis = len(actions)
+        bfrem = 0
+        tabs = "\t"*(depth -1)
         for action in actions:
             maxResult = self.maxResult(grid,action)
+            if self.debug:
+                bfrem = bfrem + 1    
+                with open("test.txt",'a') as f:
+                    f.write("{}Max action {} -- depth:{} -- bf:{}-{} -- result {}\n".format(tabs,action, depth, bfrem, bfthis, maxResult.map))
+                    f.flush()
             value = max(value, self.minValue(maxResult, alfa, beta, depth + 1, max(bf, bfthis)))
             if value >= beta:
+                if self.debug:
+                    with open("test.txt",'a') as f:
+                        f.write("{}prune Max -- depth:{} -- (alfa){} >= {}(beta)\n".format(tabs, depth, value, beta))
+                        f.flush()
                 return value
             alfa = max(alfa,value)
         
+        #self.depth = self.depth - 1
         return value
     
     def minValue(self, grid, alfa, beta, depth, bf):
+        #self.depth = self.depth + 1
         if self.terminalState(grid, depth, bf):
             return self.heuristic(grid, depth)
+        
         value = float("inf")
         actions = self.minActions(grid)
         bfthis = len(actions)
+        bfrem = 0
+        tabs = "\t"*(depth -1)
         for action in self.minActions(grid):
             minResult = self.minResult(grid,action)
+            if self.debug:
+                bfrem = bfrem + 1  
+                with open("test.txt",'a') as f:
+                    f.write("{}Min action {} -- depth:{} -- bf:{}-{} -- result {}\n".format(tabs, action, depth, bfrem, bfthis, minResult.map))
+                    f.flush()
             value = min(value, self.maxValue(minResult, alfa, beta, depth + 1, max(bf, bfthis)))
             if value <= alfa:
+                if self.debug:
+                    with open("test.txt",'a') as f:
+                        f.write("{}prune Min -- depth:{} -- (beta){} <= {}(alfa)\n".format(tabs, depth, value, alfa))
+                        f.flush()
                 return value
             beta = min(beta, value)
         
+        #self.depth = self.depth - 1
         return value
     
     def maxActions(self, grid):
@@ -71,10 +124,12 @@ class PlayerAI(BaseAI):
                 posibles[posible].append(rank)
         
         maxRank = max(max(posibles[2]), max(posibles[4]))
+        #print("maxRank: {} -- posibles {}".format(maxRank, posibles))
         for posible in posibles.iterkeys():
             for i, rank in enumerate(posibles[posible]):
                 if rank == maxRank:
                     actions.append(tuple([cells[i],posible]))
+        #print("action {}".format(actions))
         return actions                
 
         
@@ -93,12 +148,31 @@ class PlayerAI(BaseAI):
         complexity = bf**(depth - 2)
         tabs = "\t" * (depth - 2)
         if numAvblCells > 4 and depth >= 4:
+        #if complexity >= 50625:
+            if self.debug:
+                with open("test.txt",'a') as f:
+                    f.write("{}depth {} -- bf {} -- complexity {}\n".format(tabs, depth-1, bf, complexity))
             return True
         if numAvblCells <= 4 and depth >= 6:
+            #self.depth = self.depth - 1
+            if self.debug:
+                with open("test.txt",'a') as f:
+                    f.write("{}depth {} -- bf {} -- complexity {}\n".format(tabs, depth-1, bf, complexity))
+                    f.flush()
             return True
-
+        #if grid.getMaxTile() == self.LIMIT:
         if len(grid.getAvailableMoves()) == 0:
+        #if len(grid.getAvailableCells()) == 0 or len(grid.getAvailableMoves()) == 0:
+            #print("Se llenan rama {} con profundidad {}".format(grid.map, self.depth))
+            #self.depth = self.depth - 1
+            #sys.exit()
             return True        
+        #if self.heuristic(grid):
+            #print("Se llega al destino {} con profundidad {}".format(grid.map, self.depth))
+            #self.depth = self.depth - 1
+            #if self.depth == 32:
+            #    sys.exit()
+            #return True
         return False
     
     def utility(self, grid):
@@ -107,15 +181,23 @@ class PlayerAI(BaseAI):
     def heuristic(self, grid, depth):
         avCells = len(grid.getAvailableCells())
         moves = len(grid.getAvailableMoves())
-        if moves == 0:
-            return math.log(grid.getMaxTile(),2)
-        #maxValue = math.log(grid.getMaxTile(),2)
+        #if avCells == 0 or moves == 0:
+        #if moves == 0:
+        #    return grid.getMaxTile()
+        #else:
+        #    avCells = math.log(avCells)
+        #print("celdas: {} -- grid: {}".format(avCells, grid.map))
+        maxValue = math.log(grid.getMaxTile(),2)
         #logAvg = self.average(grid)
-        scoreEdges = self.scoreEdges(grid)
-        #monotonocity = self.monotonic(grid)
+        #scoreEdges = self.scoreEdges(grid)
+        monotonocity = self.monotonic(grid)
         adjacents = self.adjacents(grid)
-        #hu = 2.7*avCells  +1.0*monotonocity + 1.0*logAvg + 0.2*adjacents #11.0*logAvg + 700.0*adjacents + 47.0*monotonocity 
-        hu = 2.7*avCells  +1.0*scoreEdges
+        hu = 3.0*avCells  +1.0*monotonocity + 2.0*maxValue + 0.7*adjacents #11.0*logAvg + 700.0*adjacents + 47.0*monotonocity 
+        tabs = "\t" * (depth - 2)
+        if self.debug:
+            with open("test.txt",'a') as f:
+                f.write("{}heuristica {} -- ({}) -- ({}) -- ({}) -- ({})\n".format(tabs, hu, avCells, monotonocity, maxValue, adjacents))
+                f.flush()
         return hu
 
     def average(self,grid):
@@ -129,23 +211,8 @@ class PlayerAI(BaseAI):
         if count > 0:
             avg = float(avg) / count
         return avg
-    
+        
     def scoreEdges(self, grid):
-        sumCorners = grid.map[0][0] + grid.map[0][3] + grid.map[3][0] + grid.map[3][3]
-        sumEdges = grid.map[0][1] + grid.map[0][2] + grid.map[1][0] + grid.map[2][0] \
-            + grid.map[1][3] + grid.map[2][3] + grid.map[3][1] + grid.map[3][2]
-        sumCenter = grid.map[1][1] + grid.map[1][2] + grid.map[2][1] + grid.map[2][2] 
-        
-        if sumCorners > 0:
-            sumCorners = math.log(sumCorners * 2,2)
-        if sumEdges > 0:
-            sumEdges = math.log(sumEdges,2)
-        if sumCenter > 0:
-            sumCenter = math.log(sumCenter, 2)
-    
-        return sumCorners + sumEdges - sumCenter
-        
-    def scoreEdgesOld(self, grid):
         maxTile = grid.getMaxTile()
         trans = map(list, zip(*grid.map))
         if grid.map[0][0] >= maxTile/2 or grid.map[0][3] >= maxTile/2 \
@@ -193,7 +260,7 @@ class PlayerAI(BaseAI):
                     totals[3] = totals[3] + current - next
         
 
-        return min(totals[0], totals[1]) + min(totals[2], totals[3]) #min(totals[0], totals[1]) + min(totals[2], totals[3])
+        return min(totals[0], totals[1]) + min(totals[2], totals[3])#max(totals[0], totals[1]) + max(totals[2], totals[3])
 
     
     def adjacents(self, grid):
