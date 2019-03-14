@@ -90,11 +90,11 @@ class PlayerAI(BaseAI):
     
     def terminalState(self, grid, depth, bf):
         numAvblCells = len(grid.getAvailableCells())
-        complexity = bf**(depth - 2)
-        tabs = "\t" * (depth - 2)
-        if numAvblCells > 4 and depth >= 4:
+        if numAvblCells > 10 and depth >=2:
             return True
-        if numAvblCells <= 4 and depth >= 6:
+        if numAvblCells > 3 and depth >= 4:
+            return True
+        if numAvblCells <= 3 and depth >= 6:
             return True
 
         if len(grid.getAvailableMoves()) == 0:
@@ -113,7 +113,7 @@ class PlayerAI(BaseAI):
         #logAvg = self.average(grid)
         scoreEdges = self.scoreEdges(grid)
         #monotonocity = self.monotonic(grid)
-        adjacents = self.adjacents(grid)
+        #adjacents = self.adjacents(grid)
         #hu = 2.7*avCells  +1.0*monotonocity + 1.0*logAvg + 0.2*adjacents #11.0*logAvg + 700.0*adjacents + 47.0*monotonocity 
         hu = 2.7*avCells  +1.0*scoreEdges
         return hu
@@ -160,7 +160,29 @@ class PlayerAI(BaseAI):
         if maxTile > 0:
             maxTile = math.log(maxTile, 2)
         return maxTile
+    
+    def monotinicNew (self, grid):
+        monleft = 0
+        monright = 0
+        for row in grid.map:
+            for i in range(len(row)-1):
+                if row[i] > row[i+1]:
+                    monleft = monleft + row[i] - row[i+1]
+                else
+                    monright = monright + row[i+1] - row[i]
+                    
+        trans = map(list, zip(*grid.map))
+        for col in trans:
+            for j in range(len(col)-1):
+                if col[j] > col[j+1]:
+                    monleft = monleft + col[j] - col[j+1]
+                else
+                    monright = monright + col[j+1] - col[j]
+        '''
+            NO HE TERMINADO
+        '''
         
+                    
     def monotonic(self, grid):
         totals = [0, 0, 0, 0]
             
