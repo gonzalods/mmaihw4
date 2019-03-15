@@ -18,7 +18,7 @@ actionDic = {
 (PLAYER_TURN, COMPUTER_TURN) = (0, 1)
 
 # Time Limit Before Losing
-timeLimit = 0.4
+timeLimit = 1.0
 allowance = 0.05
 
 class GameManager:

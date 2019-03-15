@@ -6,6 +6,9 @@ import sys
 
 class PlayerAI(BaseAI):
 
+    def __init__(self):
+        self.posibles = [2, 4]
+        
     def getMove(self, grid):
         return self.alfaBeta(grid)
         
@@ -59,6 +62,15 @@ class PlayerAI(BaseAI):
     def maxActions(self, grid):
         return grid.getAvailableMoves()
     
+    def minActionsNew(self, grid):
+        actions = []
+        cells = grid.getAvailableCells()
+        for val in self.posibles:
+            for cell in cells:
+                actions.append(tuple([cell,val]))
+        
+        return actions
+            
     def minActions(self, grid):
         actions = []
         cells = grid.getAvailableCells()
@@ -68,6 +80,7 @@ class PlayerAI(BaseAI):
                 newGrid = grid.clone()
                 newGrid.insertTile(cell, posible)
                 rank = -self.adjacents(newGrid)
+                #rank = self.adjacentsNew(newGrid)
                 posibles[posible].append(rank)
         
         maxRank = max(max(posibles[2]), max(posibles[4]))
@@ -90,7 +103,7 @@ class PlayerAI(BaseAI):
     
     def terminalState(self, grid, depth, bf):
         numAvblCells = len(grid.getAvailableCells())
-        if numAvblCells > 10 and depth >=2:
+        if numAvblCells > 6 and depth >=2:
             return True
         if numAvblCells > 3 and depth >= 4:
             return True
@@ -110,12 +123,12 @@ class PlayerAI(BaseAI):
         if moves == 0:
             return math.log(grid.getMaxTile(),2)
         #maxValue = math.log(grid.getMaxTile(),2)
-        #logAvg = self.average(grid)
+        logAvg = self.average(grid)
         scoreEdges = self.scoreEdges(grid)
-        #monotonocity = self.monotonic(grid)
-        #adjacents = self.adjacents(grid)
-        #hu = 2.7*avCells  +1.0*monotonocity + 1.0*logAvg + 0.2*adjacents #11.0*logAvg + 700.0*adjacents + 47.0*monotonocity 
-        hu = 2.7*avCells  +1.0*scoreEdges
+        #monotonocity = self.monotinicNew(grid)
+        #adjacents = self.adjacentsNew(grid)
+        #hu = 50 + 5.0*avCells  - 40.0*monotonocity + 13.0*adjacents #11.0*logAvg + 700.0*adjacents + 47.0*monotonocity 
+        hu = 2.7*avCells  +1.0*scoreEdges + logAvg
         return hu
 
     def average(self,grid):
@@ -162,25 +175,43 @@ class PlayerAI(BaseAI):
         return maxTile
     
     def monotinicNew (self, grid):
-        monleft = 0
-        monright = 0
+        result = 0
         for row in grid.map:
+            monleft = 0
+            monright = 0
             for i in range(len(row)-1):
                 if row[i] > row[i+1]:
-                    monleft = monleft + row[i] - row[i+1]
-                else
-                    monright = monright + row[i+1] - row[i]
+                    if row[i+1] > 0:
+                        monleft = monleft + math.log(row[i], 2) - math.log(row[i+1], 2)
+                    else:
+                        monleft = monleft + math.log(row[i], 2)
+                elif row[i+1] > row[i]:
+                    if row[i] > 0:
+                        monleft = monleft + math.log(row[i+1], 2) - math.log(row[i], 2)
+                    else:
+                        monright = monright + math.log(row[i+1], 2)
+                    
+            result = result + min(monleft, monright)
                     
         trans = map(list, zip(*grid.map))
         for col in trans:
+            monleft = 0
+            monright = 0
             for j in range(len(col)-1):
                 if col[j] > col[j+1]:
-                    monleft = monleft + col[j] - col[j+1]
-                else
-                    monright = monright + col[j+1] - col[j]
-        '''
-            NO HE TERMINADO
-        '''
+                    if col[j+1] > 0:
+                        monleft = monleft + math.log(col[j], 2) - math.log(col[j+1], 2)
+                    else:
+                        monleft = monleft + math.log(col[j], 2)
+                elif col[j+1] > col[j]:
+                    if col[j] > 0:
+                        monleft = monleft + math.log(col[j+1], 2) - math.log(col[j], 2)
+                    else:
+                        monright = monright + math.log(col[j+1], 2)
+                    
+            result = result + min(monleft, monright)
+        
+        return result
         
                     
     def monotonic(self, grid):
@@ -218,6 +249,45 @@ class PlayerAI(BaseAI):
         return min(totals[0], totals[1]) + min(totals[2], totals[3]) #min(totals[0], totals[1]) + min(totals[2], totals[3])
 
     
+    def adjacentsNew(self, grid):
+        result = 0
+        for row in grid.map:
+            merges = 0
+            prev = 0
+            count = 0
+            for i in range(len(row)):
+                score = row[i]
+                if score != 0:
+                    if prev == score:
+                        count = count + 1
+                    elif count > 0:
+                        merges = merges + 1 + count
+                    prev = score
+            
+            if count > 0:
+                merges = merges + 1 + count
+            result = result + merges    
+                
+        trans = map(list, zip(*grid.map))
+        for col in trans:
+            merges = 0
+            prev = 0
+            count = 0
+            for j in range(len(col)):
+                score = col[i]
+                if score != 0:
+                    if prev == score:
+                        count = count + 1
+                    elif count > 0:
+                        merges = merges + 1 + count
+                    prev = score
+            
+            if count > 0:
+                merges = merges + 1 + count
+            result = result + merges    
+    
+        return result
+        
     def adjacents(self, grid):
         result = 0
         for row in grid.map:
