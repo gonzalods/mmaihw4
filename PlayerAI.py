@@ -6,9 +6,6 @@ import sys
 
 class PlayerAI(BaseAI):
 
-    def __init__(self):
-        self.posibles = [2, 4]
-        
     def getMove(self, grid):
         return self.alfaBeta(grid)
         
@@ -20,7 +17,7 @@ class PlayerAI(BaseAI):
         betterMove = moves[0]
         for move in moves:
             maxResult = self.maxResult(grid, move)
-            val = self.minValue(maxResult,alfa, float("inf"), 1, len(moves))
+            val = self.minValue(maxResult,alfa, float("inf"), 2, len(moves))
             alfa = max(alfa,val)
             if val > maxValue:
                 maxValue = val
@@ -29,8 +26,8 @@ class PlayerAI(BaseAI):
     
     def maxValue(self, grid, alfa, beta, depth, bf):
 
-        #if self.terminalState(grid, depth, bf):
-        #    return self.heuristic(grid, depth)
+        if self.terminalState(grid, depth, bf):
+            return self.heuristic(grid, depth)
         
         value = float("-inf")
         actions = self.maxActions(grid)
@@ -45,8 +42,8 @@ class PlayerAI(BaseAI):
         return value
     
     def minValue(self, grid, alfa, beta, depth, bf):
-        if self.terminalState(grid, depth, bf):
-            return self.heuristic(grid, depth)
+        #if self.terminalState(grid, depth, bf):
+        #    return self.heuristic(grid, depth)
         value = float("inf")
         actions = self.minActions(grid)
         bfthis = len(actions)
@@ -65,12 +62,13 @@ class PlayerAI(BaseAI):
     def minActionsNew(self, grid):
         actions = []
         cells = grid.getAvailableCells()
-        for val in self.posibles:
+        posibles = [2, 4]
+        for posible in posibles:
             for cell in cells:
-                actions.append(tuple([cell,val]))
+                actions.append(tuple([cell, posible]))
         
         return actions
-            
+    
     def minActions(self, grid):
         actions = []
         cells = grid.getAvailableCells()
@@ -80,7 +78,6 @@ class PlayerAI(BaseAI):
                 newGrid = grid.clone()
                 newGrid.insertTile(cell, posible)
                 rank = -self.adjacents(newGrid)
-                #rank = self.adjacentsNew(newGrid)
                 posibles[posible].append(rank)
         
         maxRank = max(max(posibles[2]), max(posibles[4]))
@@ -103,32 +100,47 @@ class PlayerAI(BaseAI):
     
     def terminalState(self, grid, depth, bf):
         numAvblCells = len(grid.getAvailableCells())
-        if numAvblCells > 6 and depth >=2:
+        if numAvblCells > 12 and depth >=2:
             return True
-        if numAvblCells > 3 and depth >= 4:
+        if numAvblCells > 2 and depth >=4:
             return True
-        if numAvblCells <= 3 and depth >= 6:
+        if depth >= 6:
+        #if numAvblCells > 3 and depth >= 6:
             return True
+        #if numAvblCells <= 3 and depth >= 6:
+        #    return True
 
         if len(grid.getAvailableMoves()) == 0:
             return True        
         return False
-    
+            
     def utility(self, grid):
         return grid.getMaxTile()
         
     def heuristic(self, grid, depth):
         avCells = len(grid.getAvailableCells())
         moves = len(grid.getAvailableMoves())
-        if moves == 0:
-            return math.log(grid.getMaxTile(),2)
-        #maxValue = math.log(grid.getMaxTile(),2)
+        #if moves == 0:
+        #    return math.log(grid.getMaxTile(),2)
+        w0 = 100
+        w1 = 8
+        w2 = 0
+        w3 = 1
+        w4 = 0
+        w5 = 0
+        maxValue = math.log(grid.getMaxTile(),2)
+        if maxValue >= 21:
+            w0 = 100
+            w1 = 75 #math.log(maxValue, 2)
+            w2 = 80 #* self.monotonicNew(grid)
+            w3 = 0
+                
         logAvg = self.average(grid)
         scoreEdges = self.scoreEdges(grid)
-        #monotonocity = self.monotinicNew(grid)
-        #adjacents = self.adjacentsNew(grid)
-        #hu = 50 + 5.0*avCells  - 40.0*monotonocity + 13.0*adjacents #11.0*logAvg + 700.0*adjacents + 47.0*monotonocity 
-        hu = 2.7*avCells  +1.0*scoreEdges + logAvg
+        monotonocity = self.monotonic(grid)
+        adjacents = self.adjacents(grid)
+        #hu = 3.0*avCells  - 100.0*monotonocity + 7.0*adjacents #1.0*maxValue + 11.0*logAvg + 700.0*adjacents + 47.0*monotonocity 
+        hu = w0*avCells  + w1*scoreEdges + w2* monotonocity + w3*logAvg + w4*maxValue + w5*adjacents
         return hu
 
     def average(self,grid):
@@ -174,7 +186,7 @@ class PlayerAI(BaseAI):
             maxTile = math.log(maxTile, 2)
         return maxTile
     
-    def monotinicNew (self, grid):
+    def monotonicNew (self, grid):
         result = 0
         for row in grid.map:
             monleft = 0
@@ -249,6 +261,25 @@ class PlayerAI(BaseAI):
         return min(totals[0], totals[1]) + min(totals[2], totals[3]) #min(totals[0], totals[1]) + min(totals[2], totals[3])
 
     
+    def adjacents(self, grid):
+        result = 0
+        for row in grid.map:
+            for i in range(len(row)):
+                if row[i] != 0:
+                    for j in range((i+1), len(row)):
+                        if row[j] != 0:
+                            result = result - abs(math.log(row[i],2) - math.log(row[j],2))
+
+        trans = map(list, zip(*grid.map))
+        for col in trans:
+            for i in range(len(col)):
+                if col[i] != 0:
+                    for j in range((i+1), len(col)):
+                        if col[j] != 0:
+                            result = result - abs(math.log(col[i],2) - math.log(col[j],2))
+
+        return result
+    
     def adjacentsNew(self, grid):
         result = 0
         for row in grid.map:
@@ -286,23 +317,4 @@ class PlayerAI(BaseAI):
                 merges = merges + 1 + count
             result = result + merges    
     
-        return result
-        
-    def adjacents(self, grid):
-        result = 0
-        for row in grid.map:
-            for i in range(len(row)):
-                if row[i] != 0:
-                    for j in range((i+1), len(row)):
-                        if row[j] != 0:
-                            result = result - abs(math.log(row[i],2) - math.log(row[j],2))
-
-        trans = map(list, zip(*grid.map))
-        for col in trans:
-            for i in range(len(col)):
-                if col[i] != 0:
-                    for j in range((i+1), len(col)):
-                        if col[j] != 0:
-                            result = result - abs(math.log(col[i],2) - math.log(col[j],2))
-
-        return result
+        return result    

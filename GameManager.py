@@ -18,7 +18,7 @@ actionDic = {
 (PLAYER_TURN, COMPUTER_TURN) = (0, 1)
 
 # Time Limit Before Losing
-timeLimit = 1.0
+timeLimit = 0.2
 allowance = 0.05
 
 class GameManager:
@@ -54,7 +54,8 @@ class GameManager:
     def start(self):
         for i in xrange(self.initTiles):
             self.insertRandonTile()
-
+        
+        #self.grid.map = [[4, 1024, 32, 2], [0, 4, 128, 64], [0, 8, 32, 16], [0, 0, 2, 0]]
         self.displayer.display(self.grid)
 
         # Player AI Goes First
